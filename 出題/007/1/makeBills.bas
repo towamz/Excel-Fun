@@ -294,7 +294,7 @@ Sub makeBills()
         ShData.Range(detailBillsColumnStartHeader.Offset(1 + i * 20, 2), detailBillsColumnStartHeader.Offset(20 + i * 20, 2)).Value
 
         ShDetailBills(i).Range(ShDetailBills(i).Range("C8").Offset(0, 4), ShDetailBills(i).Range("C8").Offset(19, 4)).Value = _
-        ShData.Range(detailBillsColumnStartHeader.Offset(1 + i * 20, 3), detailBillsColumnStartHeader.Offset(20 + i * 20, 2)).Value
+        ShData.Range(detailBillsColumnStartHeader.Offset(1 + i * 20, 3), detailBillsColumnStartHeader.Offset(20 + i * 20, 3)).Value
         
         ShDetailBills(i).Range(ShDetailBills(i).Range("C8").Offset(0, 6), ShDetailBills(i).Range("C8").Offset(19, 6)).Value = _
         ShData.Range(detailBillsColumnStartHeader.Offset(1 + i * 20, 4), detailBillsColumnStartHeader.Offset(20 + i * 20, 4)).Value
