@@ -1,0 +1,120 @@
+Option Explicit
+
+Private GFS As ClsGetFileAndSheet
+Private GDR As ClsGetDataRows
+
+Private Ws_ As Worksheet
+
+'データ抽出対象のセル範囲文字列
+Private RgOrigHeaderStr_ As String
+Private RgOrig_ As Range
+Private RgDest_ As Range
+
+Private CompanyCode_ As Long
+Private TargetMonth_ As Long
+
+
+
+'-----GDR(ClsGetDataRows)プロパティ-----
+'Public Property Let FirstRowNumber(arg1 As Long)
+'    GDR.FirstRowNumber = arg1
+'End Property
+
+Public Property Let LastRowNumber(arg1 As Long)
+    GDR.LastRowNumber = arg1
+End Property
+
+Public Property Let TargetColumnLetter(arg1 As String)
+    GDR.TargetColumnLetter = arg1
+End Property
+
+Public Property Let TargetColumnNumber(arg1 As Long)
+    GDR.TargetColumnNumber = arg1
+End Property
+
+Public Property Let TargetHeader(arg1 As String)
+    GDR.TargetHeader = arg1
+End Property
+
+
+'-----GFS(ClsGetFileAndSheet)プロパティ-----
+'対象のブックを設定する
+Public Property Set setBook(arg1 As Workbook)
+    Call GFS.setBook(arg1)
+End Property
+
+'対象のシート名を設定する
+Public Property Let SheetName(arg1 As String)
+    GFS.SheetName = arg1
+End Property
+
+
+'-----プロパティ-----
+'対象のセル範囲(文字列)を設定する
+Public Property Let HeaderRangeName(arg1 As String)
+    '複数行の文字列を取得したときは最初の１行だけを保存する
+    RgOrigHeaderStr_ = Range(arg1).Rows(1).Address
+    'ヘッダーの次の行からデータが開始していると仮定
+    GDR.FirstRowNumber = Range(arg1).Row + 1
+End Property
+
+Public Property Let CompanyCode(arg1 As Long)
+    CompanyCode_ = arg1
+End Property
+
+Public Property Let TargetMonth(arg1 As Long)
+    TargetMonth_ = arg1
+End Property
+
+Public Property Get TargetMonth() As Long
+    TargetMonth = TargetMonth_
+End Property
+
+Private Sub Class_Initialize()
+    'シート取得classのインスタンス化
+    Set GFS = New ClsGetFileAndSheet
+    '最終行取得classのインスタンス化
+    Set GDR = New ClsGetDataRows
+    
+
+End Sub
+
+
+Public Function getFilteredData() As Range
+    '対象のシートを取得する
+    Set Ws_ = GFS.getSheet
+    Set GDR.ws = Ws_
+    
+
+    'オートフィルタを解除する
+    On Error Resume Next
+    Ws_.ShowAllData 'フィルタが設定されていないとエラー発生
+    On Error GoTo 0
+    Ws_.AutoFilterMode = False
+    
+    'データのあるセル
+    Set RgOrig_ = Ws_.Range(RgOrigHeaderStr_).Rows(1).Resize(GDR.getLastRow - GDR.FirstRowNumber + 2)
+    
+    
+    RgOrig_.AutoFilter
+    RgOrig_.AutoFilter Field:=2, Criteria1:=CompanyCode_
+    RgOrig_.AutoFilter Field:=4, Criteria1:=TargetMonth_
+
+    On Error Resume Next
+    Set RgDest_ = RgOrig_.SpecialCells(xlCellTypeVisible)
+    On Error GoTo 0
+    
+    'オートフィルタを解除する
+    On Error Resume Next
+    Ws_.ShowAllData 'フィルタが設定されていないとエラー発生
+    On Error GoTo 0
+    Ws_.AutoFilterMode = False
+    
+    
+    Debug.Print RgDest_.Rows.Count
+    
+    
+    
+    Set getFilteredData = RgDest_
+
+End Function
