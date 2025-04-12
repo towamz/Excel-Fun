@@ -1,3 +1,4 @@
+
 Sub makeBills()
     Dim GFD As ClsGetFilteredData
     Dim GDR As ClsGetDataRows
@@ -20,6 +21,7 @@ Sub makeBills()
     
     Dim i As Long
     
+    Const taxRatio As Double = 0.08
     Const productCodesColumnStr As String = "F"
     Const salesColumnStr As String = "J"
     Const detailBillsColumnStartStr As String = "K"
@@ -27,6 +29,7 @@ Sub makeBills()
 
     totalBillName = "請求書"
     detailBillsName = "請求明細書"
+
 
     Set PDF = New ClsGetPdf
     Set GFD = New ClsGetFilteredData
@@ -40,13 +43,15 @@ Sub makeBills()
     companyName = Worksheets("実行シート").Range("C3").Value
     targetYear = Worksheets("実行シート").Range("C4").Value
 
+    Set ShData = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+    ShData.Name = "data" & Format(Now(), "yymmdd-hhnnss")
+    
     Set workingColumnStartEntire = ShData.Range(workingColumnStartStr & ":" & workingColumnStartStr)
     Set workingColumnStartHeader = ShData.Range(workingColumnStartStr & "1")
     Set detailBillsColumnStartEntire = ShData.Range(detailBillsColumnStartStr & ":" & detailBillsColumnStartStr)
     Set detailBillsColumnStartHeader = ShData.Range(detailBillsColumnStartStr & "1")
     
-    Set ShData = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-    ShData.Name = "data" & Format(Now(), "yymmdd-hhnnss")
+
     
     
     Set testRange = GFD.getFilteredData
@@ -70,6 +75,7 @@ Sub makeBills()
 '    shData.Range("P2:P" & GDR.getLastRow).Formula = "=SUMIF(N:N,O2,L:L)"
 
     GDR.TargetColumnLetter = "A"
+    
     
     detailBillsColumnStartHeader.Offset(1, 0).Value = 1
     detailBillsColumnStartHeader.Offset(2, 0).Value = 2
@@ -149,6 +155,11 @@ Sub makeBills()
     ShData.Range(workingColumnStartHeader.Offset(1, 3), workingColumnStartHeader.Offset(GDR.getLastRow - 1, 3)).Formula = "=XLOOKUP(" & workingColumnStartHeader.Offset(1, 0).Address(False, False) & ",商品マスタ!A:A,商品マスタ!C:C)"
     
     
+    
+
+    
+    
+    
     '重複データ削除取得(M列=種別->N列)
 '    shData.Range("O:O").Value = shData.Range("N:N").Value
 '    shData.Range("O:O").RemoveDuplicates Columns:=1, Header:=xlYes
@@ -169,6 +180,8 @@ Sub makeBills()
         workingColumnStartHeader.Offset(i, 4).Value = i
         i = i + 1
     Loop
+    
+    
     
     '種別レコード数
     Set GDR = Nothing
@@ -200,7 +213,7 @@ Sub makeBills()
     "=SUM(" & workingColumnStartHeader.Offset(1, 7).Address(False, False) & "," & workingColumnStartHeader.Offset(GDR.getLastRow - 1, 7).Address(False, False) & ")"
 
     workingColumnStartHeader.Offset(2, 8).Formula = _
-    "=Int(" & workingColumnStartHeader.Offset(1, 8).Address(False, False) & "* 0.1)"
+    "=Int(" & workingColumnStartHeader.Offset(1, 8).Address(False, False) & "* " & taxRatio & ")"
 
     workingColumnStartHeader.Offset(3, 8).Formula = _
     "=" & workingColumnStartHeader.Offset(1, 8).Address(False, False) & "+" & workingColumnStartHeader.Offset(2, 8).Address(False, False)
@@ -302,15 +315,19 @@ Sub makeBills()
         ShDetailBills(i).Range(ShDetailBills(i).Range("C8").Offset(0, 7), ShDetailBills(i).Range("C8").Offset(19, 7)).Value = _
         ShData.Range(detailBillsColumnStartHeader.Offset(1 + i * 20, 5), detailBillsColumnStartHeader.Offset(20 + i * 20, 5)).Value
     
+    
     Next
 
     ShDetailBills(UBound(ShDetailBills)).Range("K28:K30").Value = _
     ShData.Range(workingColumnStartHeader.Offset(1, 8), workingColumnStartHeader.Offset(3, 8)).Value
 
+
     'PDF作成
     PDF.TargetDirectory = ThisWorkbook.Path & "\請求書"
     PDF.PdfName = "請求書" & Format(DateSerial(targetYear, GFD.TargetMonth, 1), "yyyy年m月") & "(" & companyName & "様).pdf"
 
+    
+    PDF.IsAlertForOverwritePdfFile = False
     PDF.savePDF
 
     PDF.IsAlertForDeleteSheet = False
@@ -320,6 +337,10 @@ Sub makeBills()
     ShData.Delete
     Application.DisplayAlerts = True
 
+
+
+
 End Sub
+
 
 
