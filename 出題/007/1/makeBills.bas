@@ -223,9 +223,9 @@ Sub makeBills()
 
     ShTotalBill.Range("D11").Value = workingColumnStartHeader.Offset(3, 8).Value
 
-    '■■■■■■仕様確認■■■■■
-    'shTotalBill.Range("D13").Value = DateSerial(targetYear, GFD.TargetMonth + 2, 0)
-    ShTotalBill.Range("D13").Value = Format(DateSerial(Year(Now()), month(Now()) + 2, 0))
+    'お支払い期限(仕様確認により、指定年月の翌月)
+    ShTotalBill.Range("D13").Value = DateSerial(targetYear, GFD.TargetMonth + 2, 0)
+    'ShTotalBill.Range("D13").Value = Format(DateSerial(Year(Now()), month(Now()) + 2, 0))
 
 
 
