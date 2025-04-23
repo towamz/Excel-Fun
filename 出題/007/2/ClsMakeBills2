@@ -1,0 +1,1041 @@
+Option Explicit
+
+Private PDF As ClsGetPdf
+
+Private Wb_ As Workbook
+
+Private WsExec_ As Worksheet     '実行シート
+Private WsSalesData_ As Worksheet     '販売データ
+Private WsCapmpanyMaster_ As Worksheet   '取引先マスタ
+Private WsProductMaster_ As Worksheet    '商品マスタ
+Private WsTotalBillTemplete_ As Worksheet    '請求書(ひな形)
+Private WsDetailBillTemplete_ As Worksheet   '請求明細書(ひな形)
+
+'データ処理用シート
+Private WsData_ As Worksheet
+
+'データ流し込み用シート
+Private WsTotalBill_ As Worksheet       '請求書(データ流し込み)
+Private WsDetailBills_() As Worksheet   '請求明細書(データ流し込み)
+Private WsCSV_ As Worksheet             'CSV(データ流し込み)
+
+
+'シートからパラメータ取得用変数
+Private IssueDate_ As Long      '請求日
+Private TargetYear_ As Long     '対象年
+Private TargetMonth_ As Long    '対象月
+Private TargetDayOfMonth_ As Long     '対象締め日
+
+Private TargetInfo_() As Long     '処理対象のデータを格納する配列変数
+'(0,i)取引先コード
+'(1,i)支払日             0=当月,1=翌月,2=翌々月(,3=3か月後・・・)
+'(2,i)明細書 CSV         1=明細,2=CSV(請求書種別が増えても対応できるようにビット演算)
+Private DocumentTypeCount_ As Long     '書類の種類の数
+Private CountPerPageTotalBill As Long     '請求書の1ページあたりの最大件数
+Private CountPerPageDetailBill As Long     '請求明細書の1ページあたりの最大件数
+
+
+
+Private TaxRate_(1) As Double
+    
+'取引先マスタの見出しセル番地
+Private RgNameCapmpanyMaster_CapmpanyCode_ As String
+Private RgNameCapmpanyMaster_TargetDate_ As String
+Private RgNameCapmpanyMaster_DueDate_ As String
+Private RgNameCapmpanyMaster_BillTypeStart_ As String
+
+
+'販売データの見出しセル番地
+Private RgNameSalesData_No_ As String
+Private RgNameSalesData_CapmpanyCode_ As String
+Private RgNameSalesData_Month_ As String
+Private RgNameSalesData_DayOfMonth_ As String
+'Private RgNameSalesData__ As String
+
+'データ処理用シートのデータ開始行
+Private DataFirstRowNumber_Data_ As Long
+Private DataFirstRowNumber_TotalBill_ As Long
+Private DataFirstRowNumber_DetailBill_ As Long
+
+
+
+'データ処理用シートの見出しセル番地(販売データからの貼り付け用)
+Private RgNameData_Orig_No_ As String
+Private RgNameData_Orig_Month_ As String
+Private RgNameData_Orig_DayOfMonth_ As String
+Private RgNameData_Orig_ProductName_ As String
+Private RgNameData_Orig_UnitPrice_ As String
+Private RgNameData_Orig_Quantity_ As String
+Private RgNameData_Orig_TotalPrice_ As String
+Private RgNameData_Orig_ProductCode_ As String
+
+ 'データ処理用シートの見出しセル番地(請求明細書に貼り付け用のデータ処理列)
+Private RgNameData_Dest_DetailBill_No_ As String
+Private RgNameData_Dest_DetailBill_PurchaseDate_ As String
+Private RgNameData_Dest_DetailBill_ProductName_ As String
+Private RgNameData_Dest_DetailBill_UnitPrice_ As String
+Private RgNameData_Dest_DetailBill_Quantity_ As String
+Private RgNameData_Dest_DetailBill_TotalPrice_ As String
+
+'請求明細書に貼り付け用のセル番地
+Private RgNameData_Dest_DetailBill_Records_ As String
+
+''データ処理用シートの見出しセル番地(データ処理列)
+Private RgNameData_Dest_ProductCodeNoDup_ As String
+Private RgNameData_Dest_CountByProductCode_ As String
+Private RgNameData_Dest_SalesByProductCode_ As String
+Private RgNameData_Dest_ProductType_ As String
+
+ 'データ処理用シートの見出しセル番地(請求書に貼り付け用のデータ処理列)
+Private RgNameData_Dest_TotalBill_No_ As String
+Private RgNameData_Dest_TotalBill_ProductType_ As String
+Private RgNameData_Dest_TotalBill_CountByProductType_ As String
+Private RgNameData_Dest_TotalBill_SalesByProductType_ As String
+Private RgNameData_Dest_TotalBill_Tax_ As String
+Private RgNameData_Dest_TotalBill_TotalHeader_ As String
+Private RgNameData_Dest_TotalBill_TotalSales_ As String
+Private RgNameData_Dest_TotalBill_TotalTax_ As String
+Private RgNameData_Dest_TotalBill_TotalAmountDue_ As String
+
+'請求書に貼り付け用のセル番地
+Private RgNameData_Dest_TotalBill_Records_ As String
+
+
+
+'請求書シートの見出しセル番地
+Private RgNameTotalBill_IssueDate_ As String
+Private RgNameTotalBill_CapmpanyName_ As String
+Private RgNameTotalBill_Subject_ As String
+Private RgNameTotalBill_AmountDue_ As String
+Private RgNameTotalBill_DueDate_ As String
+
+'■■■■■■差し替え予定■■■■■■
+Private RgNameTotalBill_Records_ As String
+
+'下記消去予定
+Private RgNameTotalBill_No_ As String
+Private RgNameTotalBill_ProductType_ As String
+Private RgNameTotalBill_Count As String
+Private RgNameTotalBill_Sales_ As String
+'■■■■■■差し替え予定終了■■■■■■
+
+
+Private RgNameTotalBill_TotalSales_ As String
+Private RgNameTotalBill_TotalTax_ As String
+Private RgNameTotalBill_TotalAmountDue_ As String
+Private RgNameTotalBill_Remarks_ As String
+
+
+'請求明細書シートの見出しセル番地
+Private RgNameDetailBill_CapmpanyName_ As String
+'■■■■■■差し替え予定■■■■■■
+Private RgNameDetailBill_Records_ As String
+'下記消去予定
+Private RgNameDetailBill_No_ As String
+Private RgNameDetailBill_PurchaseDate_ As String
+Private RgNameDetailBill_ProductName_ As String
+Private RgNameDetailBill_UnitPrice_ As String
+Private RgNameDetailBill_Quantity_ As String
+Private RgNameDetailBill_TotalPrice_ As String
+'■■■■■■差し替え予定終了■■■■■■
+
+Private RgNameDetailBill_Total_ As String
+
+
+
+
+
+Private Function getDueDateLong(dueDateString As String) As Long
+    Select Case dueDateString
+        Case "翌月"
+            getDueDateLong = 1
+        Case "翌々月"
+            getDueDateLong = 2
+        Case Else
+            Err.Raise 1003, , "有効な支払い日が指定されていません"
+    End Select
+End Function
+
+Private Function getTagetDateLong(tagetDateString As String) As Long
+    Select Case tagetDateString
+        Case "10日締め"
+            getTagetDateLong = 10
+        Case "15日締め"
+            getTagetDateLong = 15
+        Case "20日締め"
+            getTagetDateLong = 20
+        Case "25日締め"
+            getTagetDateLong = 25
+        Case "月末締め"
+            getTagetDateLong = 31
+        Case Else
+            Err.Raise 1002, , "有効な締め日が指定されていません"
+    End Select
+End Function
+
+Private Function getTagetDateString(tagetDateLong As Long) As String
+    Select Case tagetDateLong
+        Case 10
+            getTagetDateString = "10日締め"
+        Case 15
+            getTagetDateString = "15日締め"
+        Case 20
+            getTagetDateString = "20日締め"
+        Case 25
+            getTagetDateString = "25日締め"
+        Case 31
+            getTagetDateString = "月末締め"
+        Case Else
+            Err.Raise 1002, , "有効な締め日が指定されていません"
+    End Select
+End Function
+
+Private Function getCellAddress(rgName As String, Optional rowNumber As Long = 0, Optional rgNameEnd As String = "", Optional rowNumberEnd As Long = 0) As String
+    '開始行番号の指定がない場合は、rgNameの行番号を代入する
+    If rowNumber = 0 Then
+        rowNumber = Split(Range(rgName).Address, "$")(2)
+    End If
+    
+    getCellAddress = Split(Range(rgName).Address, "$")(1) & CStr(rowNumber)
+    
+    If rgNameEnd <> "" Then
+        '開始行番号の指定がない場合は、rgNameEndの行番号を代入する
+        If rowNumberEnd = 0 Then
+            rowNumberEnd = Split(Range(rgNameEnd).Address, "$")(2)
+        End If
+        
+        getCellAddress = getCellAddress & ":" & Split(Range(rgNameEnd).Address, "$")(1) & CStr(rowNumberEnd)
+        '左上:右下のアドレスを取得する
+        getCellAddress = Range(getCellAddress).Address(False, False)
+    End If
+End Function
+
+
+
+'rowType
+'0=データのある行番号
+'1=データのない行番号
+Private Function getLastRowNumber(Ws As Worksheet, rgName As String, Optional rowType As Long = 0) As Long
+    Dim columnLetter As String
+    Dim rowNumber As Long
+    
+    columnLetter = Split(Range(rgName).Address, "$")(1)
+    rowNumber = CLng(Split(Range(rgName).Address, "$")(2))
+    
+    
+    
+    If Ws.Range(rgName) = "" Then
+        getLastRowNumber = rowNumber
+    Else
+        getLastRowNumber = Ws.Range(columnLetter & Rows.Count).End(xlUp).Row
+    End If
+
+    If getLastRowNumber < rowNumber Then
+        getLastRowNumber = rowNumber
+    End If
+
+    'データのない行番号が指定されたときは+1する
+    getLastRowNumber = getLastRowNumber + rowType
+
+End Function
+
+'ws=番号を付加するシート
+'rgNameNo=番号を付加する列
+'rgNameCount=番号どの行まで付けるかの基準となる列
+'wsCount=番号どの行まで付けるかの基準となるシート(指定なしだとwと同じとみなす)
+
+Private Sub addSerialNumber(Ws As Worksheet, rgNameNo As String, rgNameCount As String, Optional wsCount As Worksheet = Nothing, Optional headerString As String = "No")
+    Dim firstRowNumber As Long
+    Dim lastRowNumber As Long
+    Dim rowCount As Long
+    
+    If wsCount Is Nothing Then
+        Set wsCount = Ws
+    End If
+
+    Ws.Range(rgNameNo).Value = headerString
+
+    firstRowNumber = Ws.Range(rgNameNo).Row + 1
+    lastRowNumber = getLastRowNumber(wsCount, rgNameCount, 0)
+
+    rowCount = lastRowNumber - firstRowNumber + 1
+
+    If wsCount.Range(rgNameCount).Offset(1, 0).Value = "" Then
+        Exit Sub
+    End If
+    Ws.Range(rgNameNo).Offset(1, 0).Value = 1
+
+    If wsCount.Range(rgNameCount).Offset(2, 0).Value = "" Then
+        Exit Sub
+    End If
+    Ws.Range(rgNameNo).Offset(2, 0).Value = 2
+
+    If rowCount > 2 Then
+            Ws.Range(getCellAddress(rgNameNo, firstRowNumber, rgNameNo, firstRowNumber + 1)).AutoFill _
+                Destination:=Ws.Range(getCellAddress(rgNameNo, firstRowNumber, rgNameNo, lastRowNumber))
+    End If
+
+End Sub
+
+
+'Private Function getNextBlankRgName(ws As Worksheet, rgName As String) As String
+'    Dim columnLetter As String
+'    Dim rowNumber As Long
+'
+'    columnLetter = Split(Range(rgName).Address, "$")(1)
+''    rowNumber = CLng(Split(Range(rgName).Address, "$")(2))
+'
+''    rowNumber = getLastRowNumber(ws, columnLetter, rowNumber)
+'    rowNumber = getLastRowNumber(ws, rgName, 1)
+'
+'
+'    getNextBlankRgName = columnLetter & CStr(rowNumber)
+'
+'End Function
+
+'Private Function getColumnLetterEntireSingle(rgName As String) As String
+''    getColumnLetterEntireSingle = Split(Cells(1, Range(rgName).Column).Address, "$")(1)
+'    getColumnLetterEntireSingle = Split(Range(rgName).Address, "$")(1)
+'End Function
+'
+'Private Function getColumnLetterEntire(rgName As String) As String
+''    getColumnLetterEntire = Split(Cells(1, Range(rgName).Column).Address, "$")(1) & ":" & Split(Cells(1, Range(rgName).Column).Address, "$")(1)
+'    getColumnLetterEntire = Split(Range(rgName).Address, "$")(1) & ":" & Split(Range(rgName).Address, "$")(1)
+'End Function
+
+'Private Function getLastRowNumber(ws As Worksheet, columnLetter As String, Optional firstRowNumber As Long = 1) As Long
+'    If ws.Range(columnLetter & CStr(firstRowNumber)) = "" Then
+'        getLastRowNumber = firstRowNumber
+'    Else
+'        getLastRowNumber = ws.Range(columnLetter & Rows.Count).End(xlUp).Row + 1
+'    End If
+'
+'    If getLastRowNumber < firstRowNumber Then
+'        getLastRowNumber = firstRowNumber
+'    End If
+'End Function
+
+
+Private Sub Class_Initialize()
+    
+    '書類の種類の数(明細書,CSVの2種類)
+    DocumentTypeCount_ = 2
+    '請求書の1ページあたりの最大件数
+    CountPerPageTotalBill = 5
+    '請求明細書の1ページあたりの最大件数
+    CountPerPageDetailBill = 20
+    
+    '税率(通常税率にも対応できるように配列で格納)
+    TaxRate_(0) = 0.08
+    TaxRate_(1) = 0.1
+    
+    '各シートをオブジェクト変数へ格納
+    Set WsExec_ = Worksheets("実行シート")
+    Set WsSalesData_ = Worksheets("販売データ")
+    Set WsCapmpanyMaster_ = Worksheets("取引先マスタ")
+    Set WsProductMaster_ = Worksheets("商品マスタ")
+    Set WsTotalBillTemplete_ = Worksheets("請求書")
+    Set WsDetailBillTemplete_ = Worksheets("請求明細書")
+
+    '実行シートからパラメータを取得
+    '請求日
+    If WsExec_.Range("C8").Value = "" Then
+        IssueDate_ = Now()
+    ElseIf Not IsDate(WsExec_.Range("C8").Value) Then
+        IssueDate_ = Now()
+    Else
+        IssueDate_ = WsExec_.Range("C8").Value
+    End If
+    
+    '対象年
+    If WsExec_.Range("C9").Value <> WsSalesData_.Range("H2").Value Then
+        Err.Raise 1001, , "このブックは" & WsSalesData_.Range("H2").Value & "年の販売データが保存されています"
+    End If
+    TargetYear_ = WsExec_.Range("C9").Value
+    
+    '対象月
+    TargetMonth_ = WsExec_.Range("C10").Value
+
+    '対象締め日
+    TargetDayOfMonth_ = getTagetDateLong(WsExec_.Range("C11").Value)
+
+    '販売データの見出しセル番地
+    RgNameSalesData_No_ = "B4"
+    RgNameSalesData_CapmpanyCode_ = Range(RgNameSalesData_No_).Offset(0, 1).Address(False, False)
+    RgNameSalesData_Month_ = Range(RgNameSalesData_No_).Offset(0, 3).Address(False, False)
+    RgNameSalesData_DayOfMonth_ = Range(RgNameSalesData_No_).Offset(0, 4).Address(False, False)
+
+    '取引先マスタの見出しセル番地
+    RgNameCapmpanyMaster_CapmpanyCode_ = "A1"
+    RgNameCapmpanyMaster_TargetDate_ = Range(RgNameCapmpanyMaster_CapmpanyCode_).Offset(0, 2).Address(False, False)
+    RgNameCapmpanyMaster_DueDate_ = Range(RgNameCapmpanyMaster_CapmpanyCode_).Offset(0, 3).Address(False, False)
+    RgNameCapmpanyMaster_BillTypeStart_ = Range(RgNameCapmpanyMaster_CapmpanyCode_).Offset(0, 4).Address(False, False)
+
+    'データ処理用シートの見出しセル番地(販売データからの貼り付け用)
+    RgNameData_Orig_No_ = "A1"
+    RgNameData_Orig_Month_ = Range(RgNameData_Orig_No_).Offset(0, 3).Address(False, False)
+    RgNameData_Orig_DayOfMonth_ = Range(RgNameData_Orig_No_).Offset(0, 4).Address(False, False)
+    RgNameData_Orig_ProductCode_ = Range(RgNameData_Orig_No_).Offset(0, 5).Address(False, False)
+    RgNameData_Orig_ProductName_ = Range(RgNameData_Orig_No_).Offset(0, 6).Address(False, False)
+    RgNameData_Orig_UnitPrice_ = Range(RgNameData_Orig_No_).Offset(0, 7).Address(False, False)
+    RgNameData_Orig_Quantity_ = Range(RgNameData_Orig_No_).Offset(0, 8).Address(False, False)
+    RgNameData_Orig_TotalPrice_ = Range(RgNameData_Orig_No_).Offset(0, 9).Address(False, False)
+    
+    '各見出し行の次の行からデータが開始する
+    DataFirstRowNumber_Data_ = Range(RgNameData_Orig_No_).Offset(1, 0).Row
+    
+    'データ処理用シートの見出しセル番地(明細書に貼り付け用のデータ処理列)
+    RgNameData_Dest_DetailBill_Records_ = "K2"  '請求明細書に貼り付ける最初のセル番地
+    
+    RgNameData_Dest_DetailBill_No_ = "K1"
+    RgNameData_Dest_DetailBill_PurchaseDate_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 1).Address(False, False)
+    RgNameData_Dest_DetailBill_ProductName_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 2).Address(False, False)
+    RgNameData_Dest_DetailBill_UnitPrice_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 3).Address(False, False)
+    RgNameData_Dest_DetailBill_Quantity_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 4).Address(False, False)
+    RgNameData_Dest_DetailBill_TotalPrice_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 5).Address(False, False)
+    
+    RgNameData_Dest_ProductCodeNoDup_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 6).Address(False, False)
+    RgNameData_Dest_CountByProductCode_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 7).Address(False, False)
+    RgNameData_Dest_SalesByProductCode_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 8).Address(False, False)
+    RgNameData_Dest_ProductType_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 9).Address(False, False)
+    
+    RgNameData_Dest_TotalBill_Records_ = Range(RgNameData_Dest_DetailBill_No_).Offset(1, 10).Address(False, False)    '請求書に貼り付ける最初のセル番地
+    
+    RgNameData_Dest_TotalBill_No_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 10).Address(False, False)
+    RgNameData_Dest_TotalBill_ProductType_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 11).Address(False, False)
+    RgNameData_Dest_TotalBill_CountByProductType_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 12).Address(False, False)
+    RgNameData_Dest_TotalBill_SalesByProductType_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 13).Address(False, False)
+    RgNameData_Dest_TotalBill_Tax_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 14).Address(False, False)
+    RgNameData_Dest_TotalBill_TotalHeader_ = Range(RgNameData_Dest_DetailBill_No_).Offset(0, 15).Address(False, False)
+    RgNameData_Dest_TotalBill_TotalSales_ = Range(RgNameData_Dest_DetailBill_No_).Offset(1, 15).Address(False, False)
+    RgNameData_Dest_TotalBill_TotalTax_ = Range(RgNameData_Dest_DetailBill_No_).Offset(2, 15).Address(False, False)
+    RgNameData_Dest_TotalBill_TotalAmountDue_ = Range(RgNameData_Dest_DetailBill_No_).Offset(3, 15).Address(False, False)
+      
+    
+    '請求書シートの見出しセル番地
+    RgNameTotalBill_IssueDate_ = "H2"
+    RgNameTotalBill_CapmpanyName_ = "B6"
+    RgNameTotalBill_Subject_ = "B8"
+    RgNameTotalBill_AmountDue_ = "D11"
+    RgNameTotalBill_DueDate_ = "D13"
+    
+    '差し替え予定
+    RgNameTotalBill_Records_ = "B16:I20"
+
+    '消去予定
+    RgNameTotalBill_No_ = "B16:B20"
+    RgNameTotalBill_ProductType_ = "C16:C20"
+    RgNameTotalBill_Count = "G16:G20"
+    RgNameTotalBill_Sales_ = "I16:I20"
+    '差し替え予定終了
+    
+    '貼り付け元のセル範囲を動的に変更
+    'エクセルフォーマットの列が連続していないので、実際のデータ列より大きい
+    RgNameData_Dest_TotalBill_Records_ = Range(RgNameData_Dest_TotalBill_Records_).Resize(Range(RgNameTotalBill_Records_).Rows.Count, Range(RgNameTotalBill_Records_).columns.Count).Address(False, False)
+    
+    RgNameTotalBill_TotalSales_ = "I21"
+    RgNameTotalBill_TotalTax_ = "I22"
+    RgNameTotalBill_TotalAmountDue_ = "I23"
+    RgNameTotalBill_Remarks_ = "B26"
+
+    
+    '請求明細書シートの見出しセル番地
+    RgNameDetailBill_CapmpanyName_ = "B5"
+    '差し替え予定
+    RgNameDetailBill_Records_ = "B8:K27"
+    '消去予定
+    RgNameDetailBill_No_ = "B8:B27"
+    RgNameDetailBill_PurchaseDate_ = Range(RgNameDetailBill_No_).Offset(0, 1).Address(False, False)
+    RgNameDetailBill_ProductName_ = Range(RgNameDetailBill_No_).Offset(0, 3).Address(False, False)
+    RgNameDetailBill_UnitPrice_ = Range(RgNameDetailBill_No_).Offset(0, 6).Address(False, False)
+    RgNameDetailBill_Quantity_ = Range(RgNameDetailBill_No_).Offset(0, 8).Address(False, False)
+    RgNameDetailBill_TotalPrice_ = Range(RgNameDetailBill_No_).Offset(0, 9).Address(False, False)
+    '差し替え予定終了
+    RgNameDetailBill_Total_ = "K28:K30"
+
+    '貼り付け元のセル範囲を動的に変更
+    'エクセルフォーマットの列が連続していないので、実際のデータ列より大きい
+    RgNameData_Dest_DetailBill_Records_ = Range(RgNameData_Dest_DetailBill_Records_).Resize(Range(RgNameDetailBill_Records_).Rows.Count, Range(RgNameTotalBill_Records_).columns.Count).Address(False, False)
+
+'請求書は１枚だけなので必要ない？
+'    DataFirstRowNumber_TotalBill_＝Range(RgNameTotalBill_No_).Offset(1, 0).Row
+
+'請求明細書シートができたらOffset指定する
+'    DataFirstRowNumber_DetailBill_＝Range(RgNameDetailBill_No_).Offset(1, 0).Row
+    DataFirstRowNumber_DetailBill_ = 8
+
+End Sub
+
+
+Public Sub makeBills2()
+    Dim i As Long
+    Dim j As Long
+    Dim errNum As Long
+    
+    Call getTargetInfomation
+    
+    
+'    ReDim TargetInfo_(2, 0)
+'    '(0,i)取引先コード
+'    TargetInfo_(0, 0) = 1007
+'    '(1,i)支払月             0=当月,1=翌月,2=翌々月
+'    TargetInfo_(1, 0) = 1
+'    '(2,i)明細書 CSV         1=明細,2=CSV,4=(新しい種別),8=(新しい種別)
+'    TargetInfo_(2, 0) = 1
+    
+    For i = 0 To UBound(TargetInfo_, 2)
+    
+        Set WsData_ = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+        WsData_.Name = "data-" & TargetInfo_(0, i) & "-" & Format(Now(), "yymmdd-hhnnss")
+        
+        On Error Resume Next
+        Call getFilteredData(TargetInfo_(0, i))
+        errNum = Err.Number
+        On Error GoTo 0
+        
+        'データがなかったときは、continue
+        If errNum = 1090 Then
+        
+        'それ以外の例外の時は止める
+        ElseIf errNum <> 0 Then
+            Stop
+        'データがあった場合は処理を実行する
+        Else
+            Call setHelperColumns
+            
+            For j = 0 To (DocumentTypeCount_ - 1)
+               
+                If (TargetInfo_(2, i) And (2 ^ j)) <> 0 Then
+                    Select Case j
+                        Case 0
+                            '請求書作成(引数は締め月)
+                            Call makeBill(TargetInfo_(1, i))
+                        Case 1
+                            Call makeCSV
+                        Case Else
+                            Stop
+                    End Select
+                End If
+            
+            Next
+        
+        End If
+        
+        Application.DisplayAlerts = False
+        WsData_.Delete
+        Application.DisplayAlerts = True
+    
+    Next
+
+End Sub
+
+
+
+Public Function getTargetInfomation() As Long()
+    '必要な情報
+    '(0,i)取引先コード
+    '(1,i)支払日             0=当月,1=翌月,2=翌々月
+    '(2,i)明細書 CSV         1=明細,2=CSV(請求書種別が増えても対応できるようにビット演算)
+    
+    Dim tagetDateString As String
+    Dim i As Long
+    Dim j As Long
+    Dim tmpBillType As Long
+    
+    tagetDateString = getTagetDateString(TargetDayOfMonth_)
+    
+    '見出しの次の行からデータが始まるので1から開始
+    i = 1
+    'C列=締め日が空白になるまで
+    Do Until WsCapmpanyMaster_.Range(RgNameCapmpanyMaster_TargetDate_).Offset(i, 0).Value = ""
+        DoEvents
+        '明細種別を初期化
+        tmpBillType = 0
+
+        '対象の締め日の会社の場合、情報を取得する
+        If WsCapmpanyMaster_.Range(RgNameCapmpanyMaster_TargetDate_).Offset(i, 0).Value = tagetDateString Then
+            
+            '請求書種別がなくなるまでループ
+            j = 0
+            Do Until WsCapmpanyMaster_.Range(RgNameCapmpanyMaster_BillTypeStart_).Offset(0, j).Value = ""
+                '請求書種別が〇の場合は対象である
+                If WsCapmpanyMaster_.Range(RgNameCapmpanyMaster_BillTypeStart_).Offset(i, j).Value <> "" Then
+                    tmpBillType = tmpBillType + (2 ^ j)
+                End If
+                j = j + 1
+            Loop
+        End If
+        
+        '請求書種別の指定があったので、情報に追加する
+        If tmpBillType <> 0 Then
+            If (Not TargetInfo_) = -1 Then
+                ReDim TargetInfo_(2, 0)
+            Else
+                ReDim Preserve TargetInfo_(2, UBound(TargetInfo_, 2) + 1)
+            End If
+            
+            '(0,i)取引先コード
+            TargetInfo_(0, UBound(TargetInfo_, 2)) = WsCapmpanyMaster_.Range(RgNameCapmpanyMaster_CapmpanyCode_).Offset(i, 0).Value
+            '(1,i)支払日             0=当月,1=翌月,2=翌々月
+            TargetInfo_(1, UBound(TargetInfo_, 2)) = getDueDateLong(WsCapmpanyMaster_.Range(RgNameCapmpanyMaster_DueDate_).Offset(i, 0).Value)
+            
+            '(2,i)明細書 CSV         1=明細,2=CSV,4=(新しい種別),8=(新しい種別)
+            '(請求書種別が増えても対応できるようにビット演算)
+            TargetInfo_(2, UBound(TargetInfo_, 2)) = tmpBillType
+        End If
+        
+        i = i + 1
+    Loop
+    
+    getTargetInfomation = TargetInfo_
+End Function
+
+
+'参考情報
+'月末締めの場合TargetDayOfMonth_=31を設定してある
+'前月の検索では >31なのでデータは抽出されない
+'当月の検索では<=31なのですべてのデータが抽出される
+'問題なく動作するのでif分岐はしない
+
+Public Sub getFilteredData(companyCode As Long)
+    Dim wsOrig As Worksheet
+    Dim wsDest As Worksheet
+    Dim rgOrig As Range
+    Dim rgDest As Range
+    Dim rgNameTitleToDelete As String
+    
+'    '他でも流用できるようにローカルオブジェクト変数に再代入する
+    Set wsOrig = WsSalesData_
+    Set wsDest = WsData_
+    
+'    Set wsDest = Worksheets("test")
+    
+    
+    'オートフィルタを解除する
+    On Error Resume Next
+    wsOrig.ShowAllData 'フィルタが設定されていないとエラー発生
+    On Error GoTo 0
+    wsOrig.AutoFilterMode = False
+    
+    
+'    'データのあるセル
+    Set rgOrig = wsOrig.Range(RgNameSalesData_No_).CurrentRegion
+    
+    
+    '■■■■■抽出1■■■■■
+    '指定月の前月・締め日の翌日以降を抽出
+    rgOrig.AutoFilter
+    rgOrig.AutoFilter Field:=2, Criteria1:=companyCode
+    rgOrig.AutoFilter Field:=4, Criteria1:=TargetMonth_ - 1
+    rgOrig.AutoFilter Field:=5, Criteria1:=">" & TargetDayOfMonth_
+    
+    
+    On Error Resume Next
+    'タイトルを含みコピー
+    Set rgDest = rgOrig.SpecialCells(xlCellTypeVisible)
+    On Error GoTo 0
+
+    'データがない場合でもタイトルのみコピー
+    rgDest.Copy
+    wsDest.Range(RgNameData_Orig_No_).PasteSpecial Paste:=xlPasteValues
+
+
+    'オートフィルタを解除する
+    On Error Resume Next
+    wsOrig.ShowAllData 'フィルタが設定されていないとエラー発生
+    On Error GoTo 0
+    wsOrig.AutoFilterMode = False
+
+
+
+    '■■■■■抽出2■■■■■
+    '指定月・締め日の当日とそれ以前
+    rgOrig.AutoFilter
+    rgOrig.AutoFilter Field:=2, Criteria1:=companyCode
+    rgOrig.AutoFilter Field:=4, Criteria1:=TargetMonth_
+    rgOrig.AutoFilter Field:=5, Criteria1:="<=" & TargetDayOfMonth_
+
+
+    On Error Resume Next
+    'セル範囲のoffset取得が上手く動作しないので一旦タイトル付きで貼り付けてタイトル行を削除する
+    'rgNameTitleToDelete = getNextBlankRgName(wsDest, RgNameData_Orig_No_)
+    rgNameTitleToDelete = getCellAddress(RgNameData_Orig_No_, getLastRowNumber(wsDest, RgNameData_Orig_No_, 1))
+    
+    Set rgDest = rgOrig.SpecialCells(xlCellTypeVisible)
+    rgDest.Copy
+    wsDest.Range(rgNameTitleToDelete).PasteSpecial Paste:=xlPasteValues
+    wsDest.Range(rgNameTitleToDelete).EntireRow.Delete
+    On Error GoTo 0
+    
+'   セル範囲のoffset取得コード(参考のため残す)
+'    On Error Resume Next
+'    'データがタイトル行のみの場合はコピーしない
+'    If rgDest.Rows.Count > 1 Then
+'        'タイトルを含まないセル範囲を再取得
+'        'Set rgDest = rgDest.Offset(1, 0).Resize(rgDest.Rows.Count - 1).SpecialCells(xlCellTypeVisible)
+'        Set rgDest = rgDest.Offset(1, 0).Resize(rgDest.Rows.Count - 1)
+'
+'        rgDest.Copy
+'        wsDest.Range(getNextBlankRgName(wsDest, RgNameData_Orig_No_)).PasteSpecial Paste:=xlPasteValues
+'    End If
+'    On Error GoTo 0
+    
+    
+    'オートフィルタを解除する
+    On Error Resume Next
+    wsOrig.ShowAllData 'フィルタが設定されていないとエラー発生
+    On Error GoTo 0
+    wsOrig.AutoFilterMode = False
+
+    'データがなかったときは例外を投げる
+    If wsDest.Range("A2") = "" Then
+        Err.Raise 1090, , "指定の取引先コード・年月に販売データがありません"
+    End If
+
+End Sub
+
+
+
+Public Sub setHelperColumns()
+    Dim Ws As Worksheet
+    Dim i As Long
+    
+    Dim errNum As Long
+    
+    
+    Set Ws = WsData_
+    
+    
+    '請求書明細コピー用列を作成
+    'ご購入日(D列=月, E列=日), 商品(G列),単価(H列),数量(I列),金額(J列)
+    'No.
+    Call addSerialNumber(Ws, RgNameData_Dest_DetailBill_No_, RgNameData_Orig_No_)
+
+
+    'ご購入日
+    Ws.Range(RgNameData_Dest_DetailBill_PurchaseDate_).Value = "ご購入日"
+    i = 2
+    
+    Do Until Ws.Range(getCellAddress(RgNameData_Orig_Month_, i)).Value = ""
+        Ws.Range(getCellAddress(RgNameData_Dest_DetailBill_PurchaseDate_, i)).Value = Ws.Range(getCellAddress(RgNameData_Orig_Month_, i)).Value & "/" & Ws.Range(getCellAddress(RgNameData_Orig_DayOfMonth_, i)).Value
+        Ws.Range(getCellAddress(RgNameData_Dest_DetailBill_PurchaseDate_, i)).NumberFormat = "m/d"
+        i = i + 1
+    Loop
+
+
+    Ws.Range(RgNameData_Dest_DetailBill_ProductName_).EntireColumn.Value = Ws.Range(RgNameData_Orig_ProductName_).EntireColumn.Value
+    Ws.Range(RgNameData_Dest_DetailBill_ProductName_).Value = "商品"
+
+    Ws.Range(RgNameData_Dest_DetailBill_UnitPrice_).EntireColumn.Value = Ws.Range(RgNameData_Orig_UnitPrice_).EntireColumn.Value
+    Ws.Range(RgNameData_Dest_DetailBill_UnitPrice_).Value = "単価"
+
+    Ws.Range(RgNameData_Dest_DetailBill_Quantity_).EntireColumn.Value = Ws.Range(RgNameData_Orig_Quantity_).EntireColumn.Value
+    Ws.Range(RgNameData_Dest_DetailBill_Quantity_).Value = "数量"
+    
+    Ws.Range(RgNameData_Dest_DetailBill_TotalPrice_).EntireColumn.Value = Ws.Range(RgNameData_Orig_TotalPrice_).EntireColumn.Value
+    Ws.Range(RgNameData_Dest_DetailBill_TotalPrice_).Value = "金額"
+
+
+
+
+    '重複データ削除取得(F列=商品コード->K列)
+    Ws.Range(RgNameData_Orig_ProductCode_).EntireColumn.Copy Destination:=Ws.Range(RgNameData_Dest_ProductCodeNoDup_).EntireColumn
+    Ws.Range(RgNameData_Dest_ProductCodeNoDup_).EntireColumn.RemoveDuplicates columns:=1, Header:=xlYes
+    Ws.Range(RgNameData_Dest_ProductCodeNoDup_).EntireColumn.Sort Key1:=Ws.Range(RgNameData_Dest_ProductCodeNoDup_), Order1:=xlAscending, Header:=xlYes
+    Ws.Range(RgNameData_Dest_ProductCodeNoDup_).Value = "商品コード(重複なし)"
+
+
+    '商品コード別件数
+    Ws.Range(RgNameData_Dest_CountByProductCode_).Value = "商品コード別レコード数"
+    Ws.Range(getCellAddress(RgNameData_Dest_CountByProductCode_, 2, RgNameData_Dest_CountByProductCode_, getLastRowNumber(WsData_, RgNameData_Dest_ProductCodeNoDup_, 0))).Formula _
+            = "=COUNTIF(" & Ws.Range(RgNameData_Orig_ProductCode_).EntireColumn.Address & "," & getCellAddress(RgNameData_Dest_ProductCodeNoDup_, 2) & ")"
+    
+    Ws.Range(RgNameData_Dest_CountByProductCode_).EntireColumn.Copy
+    Ws.Range(RgNameData_Dest_CountByProductCode_).EntireColumn.PasteSpecial Paste:=xlPasteValues
+    
+
+    
+    
+    '商品コード別売上
+    Ws.Range(RgNameData_Dest_SalesByProductCode_).Value = "商品コード別売上"
+    Ws.Range(getCellAddress(RgNameData_Dest_SalesByProductCode_, 2, RgNameData_Dest_SalesByProductCode_, getLastRowNumber(WsData_, RgNameData_Dest_ProductCodeNoDup_, 0))).Formula _
+            = "=SUMIF(" & Ws.Range(RgNameData_Orig_ProductCode_).EntireColumn.Address & "," & getCellAddress(RgNameData_Dest_ProductCodeNoDup_, 2) & "," & Ws.Range(RgNameData_Orig_TotalPrice_).EntireColumn.Address & ")"
+
+    Ws.Range(RgNameData_Dest_SalesByProductCode_).EntireColumn.Copy
+    Ws.Range(RgNameData_Dest_SalesByProductCode_).EntireColumn.PasteSpecial Paste:=xlPasteValues
+
+    '種別(重複あり)
+    Ws.Range(RgNameData_Dest_ProductType_).Value = "種別(重複あり)"
+    Ws.Range(getCellAddress(RgNameData_Dest_ProductType_, 2, RgNameData_Dest_ProductType_, getLastRowNumber(WsData_, RgNameData_Dest_ProductCodeNoDup_, 0))).Formula = _
+            "=XLOOKUP(" & getCellAddress(RgNameData_Dest_ProductCodeNoDup_, 2) & ",商品マスタ!A:A,商品マスタ!C:C)"
+
+    Ws.Range(RgNameData_Dest_ProductType_).EntireColumn.Copy
+    Ws.Range(RgNameData_Dest_ProductType_).EntireColumn.PasteSpecial Paste:=xlPasteValues
+
+    '種別を出してからNoを付けるので、Noを飛ばす
+
+    '種別
+    Ws.Range(RgNameData_Dest_ProductType_).EntireColumn.Copy
+    Ws.Range(RgNameData_Dest_TotalBill_ProductType_).EntireColumn.PasteSpecial Paste:=xlPasteValues
+    Ws.Range(RgNameData_Dest_TotalBill_ProductType_).EntireColumn.RemoveDuplicates columns:=1, Header:=xlYes
+    Ws.Range(RgNameData_Dest_TotalBill_ProductType_).EntireColumn.Sort Key1:=Ws.Range(RgNameData_Dest_TotalBill_ProductType_), Order1:=xlAscending, Header:=xlYes
+    Ws.Range(RgNameData_Dest_TotalBill_ProductType_).Value = "種別"
+
+
+
+'   'No
+    Call addSerialNumber(Ws, RgNameData_Dest_TotalBill_No_, RgNameData_Dest_TotalBill_ProductType_)
+    
+    
+    '種別レコード数
+    Ws.Range(RgNameData_Dest_TotalBill_CountByProductType_).Value = "件数"
+    Ws.Range(getCellAddress(RgNameData_Dest_TotalBill_CountByProductType_, 2, RgNameData_Dest_TotalBill_CountByProductType_, getLastRowNumber(Ws, RgNameData_Dest_TotalBill_No_, 0))).Formula = _
+            "=SUMIF(" & Ws.Range(RgNameData_Dest_ProductType_).EntireColumn.Address & "," & getCellAddress(RgNameData_Dest_TotalBill_ProductType_, 2) & "," & Ws.Range(RgNameData_Dest_CountByProductCode_).EntireColumn.Address & ")"
+
+    Ws.Range(RgNameData_Dest_TotalBill_CountByProductType_).EntireColumn.Copy
+    Ws.Range(RgNameData_Dest_TotalBill_CountByProductType_).EntireColumn.PasteSpecial Paste:=xlPasteValues
+    
+
+    '種別売上
+    Ws.Range(RgNameData_Dest_TotalBill_SalesByProductType_).Value = "金額"
+    Ws.Range(getCellAddress(RgNameData_Dest_TotalBill_SalesByProductType_, 2, RgNameData_Dest_TotalBill_SalesByProductType_, getLastRowNumber(Ws, RgNameData_Dest_TotalBill_No_, 0))).Formula = _
+            "=SUMIF(" & Ws.Range(RgNameData_Dest_ProductType_).EntireColumn.Address & "," & getCellAddress(RgNameData_Dest_TotalBill_ProductType_, 2) & "," & Ws.Range(RgNameData_Dest_SalesByProductCode_).EntireColumn.Address & ")"
+
+    Ws.Range(RgNameData_Dest_TotalBill_SalesByProductType_).EntireColumn.Copy
+    Ws.Range(RgNameData_Dest_TotalBill_SalesByProductType_).EntireColumn.PasteSpecial Paste:=xlPasteValues
+
+
+
+    '種別税率(今回は軽減税率だけなのでvalueで値を代入する)
+    Ws.Range(RgNameData_Dest_TotalBill_Tax_).Value = "税率"
+    Ws.Range(getCellAddress(RgNameData_Dest_TotalBill_Tax_, 2, RgNameData_Dest_TotalBill_Tax_, getLastRowNumber(Ws, RgNameData_Dest_TotalBill_No_, 0))).Value = TaxRate_(0)
+    Ws.Range(RgNameData_Dest_TotalBill_Tax_).EntireColumn.Interior.Color = RGB(192, 192, 192)
+    
+    
+    '合計
+    Ws.Range(RgNameData_Dest_TotalBill_TotalHeader_).Value = "合計"
+    '売り上げ合計
+    Ws.Range(RgNameData_Dest_TotalBill_TotalSales_).Formula = _
+            "=SUM(" & Ws.Range(RgNameData_Dest_TotalBill_SalesByProductType_).EntireColumn.Address & ")"
+
+    '消費税(消費税区分が2つ以上になった場合は、xlookupなどに差し替え)
+    Ws.Range(RgNameData_Dest_TotalBill_TotalTax_).Formula = _
+            "=Int(" & RgNameData_Dest_TotalBill_TotalSales_ & "* " & TaxRate_(0) & ")"
+
+    '請求額
+    Ws.Range(RgNameData_Dest_TotalBill_TotalAmountDue_).Formula = _
+            "=" & RgNameData_Dest_TotalBill_TotalSales_ & "+" & RgNameData_Dest_TotalBill_TotalTax_
+
+    Ws.Range(RgNameData_Dest_TotalBill_TotalHeader_).EntireColumn.Copy
+    Ws.Range(RgNameData_Dest_TotalBill_TotalHeader_).EntireColumn.PasteSpecial Paste:=xlPasteValues
+
+    Application.CutCopyMode = False
+
+End Sub
+
+'明細書用
+Public Sub makeBill(monthOffset As Long)
+    Dim detailBillsCount As Long
+    Dim detailBillsLastRowNumber As Long
+    
+    Dim i As Long
+
+    Set PDF = New ClsGetPdf
+    'PDF生成のアラートをすべてOFF
+    PDF.IsAlertForCreateFolder = False
+    PDF.IsAlertForOverwritePdfFile = False
+    PDF.IsAlertForDeleteSheet = False
+    
+    '■■■■■請求書作成■■■■■
+    'シートの追加・PDFファイル化対象に追加
+    WsTotalBillTemplete_.Copy After:=Sheets(Sheets.Count)
+    Set WsTotalBill_ = ActiveSheet
+    WsTotalBill_.Name = WsTotalBillTemplete_.Name & "(1)"
+    PDF.wsName = WsTotalBill_.Name
+    
+    '発行日(指定日またはマクロ実行日)
+    WsTotalBill_.Range(RgNameTotalBill_IssueDate_).Value = IssueDate_
+    WsTotalBill_.Range(RgNameTotalBill_IssueDate_).NumberFormat = "ggge年mm月dd日"
+    
+    '会社名
+    WsTotalBill_.Range(RgNameTotalBill_CapmpanyName_).Value = WsData_.Range("C2").Value
+    
+    '件名
+    WsTotalBill_.Range(RgNameTotalBill_Subject_).Value = "件名：" & Format(DateSerial(TargetYear_, TargetMonth_, 1), "yyyy年m月分") & "について"
+    
+    '請求額
+    WsTotalBill_.Range(RgNameTotalBill_AmountDue_).Value = WsData_.Range(getCellAddress(RgNameData_Dest_TotalBill_TotalAmountDue_, 4)).Value
+    
+    '支払期限
+    WsTotalBill_.Range(RgNameTotalBill_DueDate_).Value = Format(DateSerial(TargetYear_, TargetMonth_ + monthOffset + 1, 0))
+    
+    
+    '差し替え予定
+    '■■■■■■改修ポイント ■■■■■■
+    'excelフォーマットの列が連続していないので
+    'データ処理用シートもフォーマットに合わせて空白列を作る必要あり
+    'offsetの値を変えるだけで行けるはず
+    
+    'No~金額
+'    WsTotalBill_.Range(RgNameTotalBill_Records_).Value = _
+'        WsData_.Range(RgNameData_Dest_TotalBill_Records_).Value
+    
+    '下記削除予定
+    'No
+    WsTotalBill_.Range(RgNameTotalBill_No_).Value = _
+        WsData_.Range(getCellAddress(RgNameData_Dest_TotalBill_No_, 2, RgNameData_Dest_TotalBill_No_, 6)).Value
+    
+    '種別
+    WsTotalBill_.Range(RgNameTotalBill_ProductType_).Value = _
+        WsData_.Range(getCellAddress(RgNameData_Dest_TotalBill_ProductType_, 2, RgNameData_Dest_TotalBill_ProductType_, 6)).Value
+    
+    '件数
+    WsTotalBill_.Range(RgNameTotalBill_Count).Value = _
+        WsData_.Range(getCellAddress(RgNameData_Dest_TotalBill_CountByProductType_, 2, RgNameData_Dest_TotalBill_CountByProductType_, 6)).Value
+    
+    '金額
+    WsTotalBill_.Range(RgNameTotalBill_Sales_).Value = _
+        WsData_.Range(getCellAddress(RgNameData_Dest_TotalBill_SalesByProductType_, 2, RgNameData_Dest_TotalBill_SalesByProductType_, 6)).Value
+
+    '差し替え予定終了
+
+
+    '合計
+    WsTotalBill_.Range(RgNameTotalBill_TotalSales_).Value = WsData_.Range(RgNameData_Dest_TotalBill_TotalSales_).Value
+    WsTotalBill_.Range(RgNameTotalBill_TotalTax_).Value = WsData_.Range(RgNameData_Dest_TotalBill_TotalTax_).Value
+    WsTotalBill_.Range(RgNameTotalBill_TotalAmountDue_).Value = WsData_.Range(RgNameData_Dest_TotalBill_TotalAmountDue_).Value
+
+    '摘要
+    '月末締めの場合日付がずれるのでif分岐させる
+    If TargetDayOfMonth_ = 31 Then
+        WsTotalBill_.Range(RgNameTotalBill_Remarks_).Value = _
+            "対象取引期間：" & Format(DateSerial(TargetYear_, TargetMonth_, 1), "yyyy/m/d") & "～" & _
+                                Format(DateSerial(TargetYear_, TargetMonth_ + 1, 0), "yyyy/m/d")
+    Else
+        WsTotalBill_.Range(RgNameTotalBill_Remarks_).Value = _
+            "対象取引期間：" & Format(DateSerial(TargetYear_, TargetMonth_ - 1, TargetDayOfMonth_ + 1), "yyyy/m/d") & "～" & _
+                                Format(DateSerial(TargetYear_, TargetMonth_, TargetDayOfMonth_), "yyyy/m/d")
+    End If
+    
+    '■■■■■請求明細書作成■■■■■
+    detailBillsLastRowNumber = DataFirstRowNumber_DetailBill_ + CountPerPageDetailBill - 1
+
+    '請求明細書の枚数を取得(1シート20件)
+    detailBillsCount = Int((getLastRowNumber(WsData_, RgNameData_Dest_DetailBill_No_, 0) - 2) / CountPerPageDetailBill)
+    ReDim WsDetailBills_(detailBillsCount)
+    
+    For i = 0 To detailBillsCount
+        'シートの追加・PDFファイル化対象に追加
+        WsDetailBillTemplete_.Copy After:=Sheets(Sheets.Count)
+
+        Set WsDetailBills_(i) = ActiveSheet
+        WsDetailBills_(i).Name = WsDetailBillTemplete_.Name & "(" & (i + 1) & ")"
+        PDF.wsName = WsDetailBills_(i).Name
+    
+        '会社名
+        WsDetailBills_(i).Range("B5").Value = WsData_.Range("C2").Value
+   
+   
+        '差し替え予定
+        '■■■■■■改修ポイント ■■■■■■
+        'excelフォーマットの列が連続していないので
+        'データ処理用シートもフォーマットに合わせて空白列を作る必要あり
+        'offsetの値を変えるだけで行けるはず
+    
+        'No~金額
+'        WsDetailBills_(i).Range(RgNameDetailBill_Records_).Value = _
+'            WsData_.Range(RgNameData_Dest_DetailBill_Records_).Value
+   
+   
+   
+        '下記削除予定
+        'No
+        WsDetailBills_(i).Range(getCellAddress("B8", , "B8", 27)).Value = _
+            WsData_.Range(getCellAddress(RgNameData_Dest_DetailBill_No_, 2 + i * 20, RgNameData_Dest_DetailBill_No_, 21 + i * 20)).Value
+   
+        '購入日
+        WsDetailBills_(i).Range(getCellAddress("C8", , "C8", 27)).Value = _
+            WsData_.Range(getCellAddress(RgNameData_Dest_DetailBill_PurchaseDate_, 2 + i * 20, RgNameData_Dest_DetailBill_PurchaseDate_, 21 + i * 20)).Value
+        WsDetailBills_(i).Range(getCellAddress("C8", , "C8", 27)).NumberFormat = "m/d"
+
+        '商品
+        WsDetailBills_(i).Range(getCellAddress("E8", , "E8", 27)).Value = _
+            WsData_.Range(getCellAddress(RgNameData_Dest_DetailBill_ProductName_, 2 + i * 20, RgNameData_Dest_DetailBill_ProductName_, 21 + i * 20)).Value
+
+        '単価
+        WsDetailBills_(i).Range(getCellAddress("H8", , "H8", 27)).Value = _
+            WsData_.Range(getCellAddress(RgNameData_Dest_DetailBill_UnitPrice_, 2 + i * 20, RgNameData_Dest_DetailBill_UnitPrice_, 21 + i * 20)).Value
+        WsDetailBills_(i).Range(getCellAddress("H8", , "H8", 27)).NumberFormat = "0"
+        
+        '数量
+        WsDetailBills_(i).Range(getCellAddress("J8", , "J8", 27)).Value = _
+            WsData_.Range(getCellAddress(RgNameData_Dest_DetailBill_Quantity_, 2 + i * 20, RgNameData_Dest_DetailBill_Quantity_, 21 + i * 20)).Value
+            
+        '金額
+        WsDetailBills_(i).Range(getCellAddress("K8", , "K8", 27)).Value = _
+            WsData_.Range(getCellAddress(RgNameData_Dest_DetailBill_TotalPrice_, 2 + i * 20, RgNameData_Dest_DetailBill_TotalPrice_, 21 + i * 20)).Value
+    
+        '差し替え予定終了
+    
+    Next
+
+    '合計(最後の請求明細書のみ)
+    WsDetailBills_(UBound(WsDetailBills_)).Range("K28:K30").Value = WsData_.Range("Z2:Z4").Value
+
+    'PDF作成
+    '請求書yyyy年m月○○締め
+    PDF.targetDirectory = ThisWorkbook.Path & "\請求書" & Format(DateSerial(TargetYear_, TargetMonth_, 1), "yyyy年m月") & getTagetDateString(TargetDayOfMonth_)
+    
+    PDF.PdfName = "請求書" & Format(DateSerial(TargetYear_, TargetMonth_, 1), "yyyy年m月") & "(" & WsData_.Range("C2").Value & "様).pdf"
+
+    PDF.savePDF
+    PDF.deleteSheets
+    
+    Set PDF = Nothing
+End Sub
+
+'CSV用
+Public Sub makeCSV()
+    Dim FSO As Object
+    Dim wbTmp As Workbook
+    Dim wsTmp As Worksheet
+    Dim targetDirectory As String
+    Dim csvName As String
+    Dim absoluteCsvName As String
+
+    
+    Set FSO = CreateObject("Scripting.FileSystemObject")
+    
+    ' 新しいブックを作成し、最初のシートを取得
+    Set wbTmp = Workbooks.Add
+    Set wsTmp = wbTmp.Sheets(1)
+    
+    
+    'フォルダ・ファイル名取得
+    targetDirectory = ThisWorkbook.Path & "\請求書" & Format(DateSerial(TargetYear_, TargetMonth_, 1), "yyyy年m月") & getTagetDateString(TargetDayOfMonth_)
+    csvName = absoluteCsvName & "請求データ" & Format(DateSerial(TargetYear_, TargetMonth_, 1), "yyyy年m月") & "(" & WsData_.Range("C2").Value & "様).csv"
+    absoluteCsvName = FSO.BuildPath(targetDirectory, csvName)
+    
+
+    'データをcsv用にコピー
+    WsData_.Range(WsData_.Range(RgNameData_Dest_DetailBill_No_), WsData_.Range(RgNameData_Dest_DetailBill_TotalPrice_)).EntireColumn.Copy _
+    Destination:=wsTmp.Range("A1")
+    
+    'フォルダ確認・作成
+    If Not FSO.FolderExists(targetDirectory) Then
+        FSO.CreateFolder targetDirectory
+    End If
+
+    '既存ファイル削除
+    If FSO.FileExists(absoluteCsvName) Then
+        FSO.DeleteFile absoluteCsvName, True
+    End If
+
+    ' CSVとして保存
+    Application.DisplayAlerts = False
+    wbTmp.SaveAs FileName:=absoluteCsvName, FileFormat:=xlCSV
+    wbTmp.Close SaveChanges:=False
+    Application.DisplayAlerts = True
+
+End Sub
+
