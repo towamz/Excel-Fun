@@ -12,8 +12,8 @@ Enum searchFields
     MaritalStatus
     BloodType
     Prefecture
-    PhoneNumber
-    MobileNumber
+    LandlinePhoneNumber
+    MobilePhoneNumber
     MobileCarrier
     CurryEatingStyles
     MaxNumber_NotForUse
@@ -69,10 +69,10 @@ Public Sub getFilteredData()
                 Call autoFilterBloodType(rgOrig, i, wsDest.Cells(2, i).Value)
             Case searchFields.Prefecture
                 Call autoFilterString(rgOrig, i, wsDest.Cells(2, i).Value)
-            Case searchFields.PhoneNumber
-                Call autoFilterString(rgOrig, i, wsDest.Cells(2, i).Value)
-            Case searchFields.MobileNumber
-                Call autoFilterString(rgOrig, i, wsDest.Cells(2, i).Value)
+            Case searchFields.LandlinePhoneNumber
+                Call autoFilterPhoneNumber(rgOrig, i, wsDest.Cells(2, i).Value)
+            Case searchFields.MobilePhoneNumber
+                Call autoFilterPhoneNumber(rgOrig, i, wsDest.Cells(2, i).Value)
             Case searchFields.MobileCarrier     '検索キー１つだけの関数を作るか?
                 Call autoFilterString(rgOrig, i, wsDest.Cells(2, i).Value)
             Case searchFields.CurryEatingStyles
@@ -139,7 +139,7 @@ Sub autoFilterNumber(rg As Range, colIndex As Long, val As String)
             '空白なので処理しない
         Case 0
             rg.AutoFilter Field:=colIndex, Criteria1:=aryVal(0)
-        Case Else
+        Case 1
             '数値以外指定の動作
             'if IsNumericを有効化:全件表示
             '              無効化:0件
@@ -150,6 +150,9 @@ Sub autoFilterNumber(rg As Range, colIndex As Long, val As String)
                     rg.AutoFilter Field:=colIndex, Criteria1:=">=" & aryVal(1), Operator:=xlAnd, Criteria2:="<=" & aryVal(0)
                 End If
 '            End If
+        Case Else
+            rg.AutoFilter Field:=colIndex, Criteria1:=aryVal, Operator:=xlFilterValues
+    
     End Select
 
     If UBound(aryVal) > 1 Then
@@ -184,5 +187,36 @@ Sub autoFilterBloodType(rg As Range, colIndex As Long, val As String)
     
     If UBound(aryVal) > 0 Then
         Debug.Print "検索キーは1つまでです:" & colIndex
+    End If
+End Sub
+
+
+Sub autoFilterPhoneNumber(rg As Range, colIndex As Long, val As String)
+    Dim REX As Object
+    Dim aryVal() As String
+    
+    '正規表現オブジェクト
+    Set REX = CreateObject("VBScript.RegExp")
+    REX.IgnoreCase = True
+    REX.Global = True
+    REX.Pattern = "(\s|　)+"
+    
+    aryVal = Split(REX.Replace(Trim(val), ""), "-")
+    Select Case UBound(aryVal)
+        Case -1
+            '空白なので処理しない
+        Case 0
+            rg.AutoFilter Field:=colIndex, Criteria1:="*" & aryVal(0) & "*"
+        Case 1
+            rg.AutoFilter Field:=colIndex, Criteria1:="*" & aryVal(0) & "*-*" & aryVal(1) & "*-*"
+            Debug.Print "*" & aryVal(0) & "*-*" & aryVal(1) & "*-"
+        Case Else
+            rg.AutoFilter Field:=colIndex, Criteria1:="*" & aryVal(0) & "*-*" & aryVal(1) & "*-*" & aryVal(2) & "*"
+            Debug.Print "*" & aryVal(0) & "*-*" & aryVal(1) & "*-*" & aryVal(2) & "*"
+
+    End Select
+    
+    If UBound(aryVal) > 2 Then
+        Debug.Print "検索キーは2つまでです:" & colIndex
     End If
 End Sub
