@@ -44,9 +44,9 @@ Sub task001_1()
         '[セルの値が数値]または[最終行]
         Loop Until IsNumeric(rg_src.Value) Or rg_src.Row >= Rows.Count
         
-        '[セルの値が数値]の時([最終行]でないとき)
+        '[セルの値が数値]の時
         'セルの色の塗りつぶしを実施する
-        If rg_src.Row <> Rows.Count Then
+        If IsNumeric(rg_src.Value) Then
             If rg.Offset(0, i).MergeCells Then
                 Debug.Print rg.Offset(0, i).MergeArea.Cells(1, 1).Value
                 rg.Offset(0, i).MergeArea.Cells(1, 1).Interior.Color = clr
