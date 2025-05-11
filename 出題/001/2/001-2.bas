@@ -13,24 +13,45 @@ End Sub
 
 
 Function getTargetAddresses(ws As Worksheet, rg As Range) As Object
-    Dim dicTgtRng As Object
+    'aryTgtRng(0,i) = 数値の入ったセルアドレス/行番号:rows.count="none"=データない/"hidden"=非表示
+    'aryTgtRng(1,i) = ヘッダーアドレス
+    Dim aryTgtRng() As String
+    Dim aryTgtRngIndex As Long
     
+    Dim dicTgtRng As Object
     Dim rg_src As Range
 
     Dim i As Long
     Dim j As Long
     
     Set dicTgtRng = CreateObject("Scripting.Dictionary")
-
+    ReDim aryTgtRng(1, 8)
+    aryTgtRngIndex = -1
     i = 1
     '列方向終了条件:
     '[セルの値が空白]かつ[セル結合していない]
     Do Until rg.Offset(0, i).Value = "" And Not rg.Offset(0, i).MergeCells
         DoEvents
         
-        '表示列の場合のみ処理を実行する
-        If Not rg.Offset(0, i).EntireColumn.Hidden Then
+        aryTgtRngIndex = aryTgtRngIndex + 1
         
+        If aryTgtRngIndex > UBound(aryTgtRng, 2) Then
+            ReDim Preserve aryTgtRng(1, UBound(aryTgtRng, 2) * 2)
+        End If
+        
+        'ヘッダーアドレスを保存
+        If rg.Offset(0, i).MergeCells Then
+            aryTgtRng(1, aryTgtRngIndex) = rg.Offset(0, i).MergeArea.Cells(1, 1).Address
+        Else
+            aryTgtRng(1, aryTgtRngIndex) = rg.Offset(0, i).Address
+        End If
+        
+        
+        '非表示列:"hidden"を記録する
+        If rg.Offset(0, i).EntireColumn.Hidden Then
+            aryTgtRng(0, aryTgtRngIndex) = "hidden"
+        '表示列:数値セル検索
+        Else
             Set rg_src = rg.Offset(0, i)
             
             Do
@@ -54,14 +75,13 @@ Function getTargetAddresses(ws As Worksheet, rg As Range) As Object
             '[セルの値が数値]または[最終行]
             Loop Until IsNumeric(rg_src.Value) Or rg_src.Row >= Rows.Count
             
-            '[セルの値が数値]の時([最終行]でないとき)
-            'セルアドレスを保存する
-            If rg_src.Row <> Rows.Count Then
-                If dicTgtRng.Exists(ws.Cells(rg_src.Row, rg.Column).Value) Then
-                    dicTgtRng(ws.Cells(rg_src.Row, rg.Column).Value) = dicTgtRng(ws.Cells(rg_src.Row, rg.Column).Value) & "," & rg_src.Address
-                Else
-                    dicTgtRng.Add ws.Cells(rg_src.Row, rg.Column).Value, rg_src.Address
-                End If
+            
+            '[最終行]:noneを記録
+            If rg_src.Row = Rows.Count Then
+                aryTgtRng(0, aryTgtRngIndex) = "none"
+            '[セルの値が数値]:セルアドレスを保存する
+            Else
+                aryTgtRng(0, aryTgtRngIndex) = rg_src.Address
             End If
         End If
     
@@ -69,6 +89,79 @@ Function getTargetAddresses(ws As Worksheet, rg As Range) As Object
     Loop
 
     rg.Activate
+    
+    'ヘッダー検索の際、次のヘッダーと一致しているかの判定があり
+    'インデックスエラーが発生するので実際の要素数+1する
+    ReDim Preserve aryTgtRng(1, aryTgtRngIndex + 1)
+    
+    
+    Dim tmpColSt As Long
+    Dim tmpHeaderAddress As String
+    Dim tmpRowMin As Long
+    
+    i = 0
+    Do
+        DoEvents
+    
+        tmpColSt = i
+        On Error Resume Next
+        tmpRowMin = Range(aryTgtRng(0, i)).Row
+        If Err.Number <> 0 Then
+            tmpRowMin = Rows.Count
+        End If
+        On Error GoTo 0
+        
+        
+        tmpHeaderAddress = aryTgtRng(1, i)
+        
+        '同じヘッダー範囲を取得
+        Do While tmpHeaderAddress = aryTgtRng(1, i + 1)
+            DoEvents
+            If i > aryTgtRngIndex Then
+                Exit Do
+            End If
+            
+            i = i + 1
+            On Error Resume Next
+            tmpRowMin = WorksheetFunction.Min(tmpRowMin, Range(aryTgtRng(0, i)).Row)
+            If Err.Number <> 0 Then
+                'Stop
+            End If
+            On Error GoTo 0
+        Loop
+        
+        '同じヘッダーが2つ以上の時のみ最小値がどれか検索する
+        If tmpColSt <> i Then
+            For j = tmpColSt To i
+                On Error Resume Next
+                If Range(aryTgtRng(0, j)).Row <> tmpRowMin Then
+                    If Err.Number = 0 Then
+                        aryTgtRng(0, j) = "notMin"
+                    End If
+                End If
+                On Error GoTo 0
+            Next
+        End If
+        i = i + 1
+    Loop Until i > aryTgtRngIndex
+    
+    
+    ReDim Preserve aryTgtRng(1, aryTgtRngIndex)
+
+    '結果を連想配列に代入する
+    For i = 0 To UBound(aryTgtRng, 2)
+        On Error Resume Next
+        Debug.Print ws.Range(aryTgtRng(0, i)).Address
+    
+        If Err.Number = 0 Then
+            If dicTgtRng.Exists(ws.Cells(ws.Range(aryTgtRng(0, i)).Row, rg.Column).Value) Then
+                dicTgtRng(ws.Cells(ws.Range(aryTgtRng(0, i)).Row, rg.Column).Value) = dicTgtRng(ws.Cells(ws.Range(aryTgtRng(0, i)).Row, rg.Column).Value) & "," & ws.Range(aryTgtRng(0, i)).Address
+            Else
+                dicTgtRng.Add ws.Cells(ws.Range(aryTgtRng(0, i)).Row, rg.Column).Value, ws.Range(aryTgtRng(0, i)).Address
+            End If
+        End If
+        On Error GoTo 0
+    Next i
     
     Set getTargetAddresses = dicTgtRng
 
