@@ -19,6 +19,19 @@ Sub task009_1()
     Dim tblData As ListObject
     Set tblData = Worksheets("データ").ListObjects("データTB")
 
+
+    'データソート
+    tblData.Sort.SortFields.Clear
+    
+    tblData.Sort.SortFields.Add Key:=tblData.ListColumns("役職コード").Range, _
+        SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+    
+    tblData.Sort.SortFields.Add Key:=tblData.ListColumns("職員コード").Range, _
+        SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+    
+    tblData.Sort.Apply
+
+
     For i = 1 To 9
         positionCode = getPositionCodeByPositionGroupCode(tbl, i, "役職グループコード", "役職コード")
 
