@@ -1,0 +1,166 @@
+Option Explicit
+
+Private FSO As Object
+
+Private Wb_ As Workbook
+
+Private TargetDirectory_ As String
+Private WsNames_() As String
+Private WsNamesIndex_ As Long
+
+Private PdfName_ As String
+Private AbsolutePdfName_ As String
+
+Private IsAlertForDeleteSheet_ As Boolean
+Private IsAlertForOverwritePdfFile_ As Boolean
+Private IsAlertForCreateFolder_ As Boolean
+
+Public Property Let TargetDirectory(arg1 As String)
+    TargetDirectory_ = arg1
+End Property
+
+Public Property Get TargetDirectory() As String
+    TargetDirectory_ = arg1
+End Property
+
+
+Public Property Set Book(arg1 As Workbook)
+    Set Wb_ = arg1
+End Property
+
+Public Property Get Book() As Workbook
+    Set Book = Wb_
+End Property
+
+
+Public Property Let WsName(arg1 As String)
+    
+    WsNamesIndex_ = WsNamesIndex_ + 1
+    
+    If WsNamesIndex_ > UBound(WsNames_) Then
+        ReDim Preserve WsNames_(UBound(WsNames_) * 2)
+    End If
+    
+    WsNames_(WsNamesIndex_) = arg1
+End Property
+
+Public Property Get WsNames() As String
+    WsNames = WsNames_()
+End Property
+
+Public Property Let PdfName(arg1 As String)
+    If FSO.GetExtensionName(arg1) <> "pdf" Then
+        arg1 = arg1 & ".pdf"
+    End If
+    
+    PdfName_ = arg1
+End Property
+
+Public Property Get PdfName() As String
+    PdfName = PdfName_()
+End Property
+
+
+Public Property Let IsAlertForDeleteSheet(arg1 As Boolean)
+    IsAlertForDeleteSheet_ = arg1
+End Property
+
+Public Property Get IsAlertForDeleteSheet() As Boolean
+    IsAlertForDeleteSheet = IsAlertForDeleteSheet_
+End Property
+
+
+Public Property Let IsAlertForOverwritePdfFile(arg1 As Boolean)
+    IsAlertForOverwritePdfFile_ = arg1
+End Property
+
+Public Property Get IsAlertForOverwritePdfFile() As Boolean
+    IsAlertForOverwritePdfFile = IsAlertForOverwritePdfFile_
+End Property
+
+
+Public Property Let IsAlertForCreateFolder(arg1 As Boolean)
+    IsAlertForCreateFolder_ = arg1
+End Property
+
+Public Property Get IsAlertForCreateFolder() As Boolean
+    IsAlertForCreateFolder = IsAlertForCreateFolder_
+End Property
+
+
+
+Private Sub Class_Initialize()
+    Set FSO = CreateObject("Scripting.FileSystemObject")
+    Set Wb_ = ThisWorkbook
+    
+    ReDim Preserve WsNames_(8)
+    WsNamesIndex_ = -1
+    TargetDirectory_ = ThisWorkbook.Path
+    IsAlertForDeleteSheet_ = True
+    IsAlertForOverwritePdfFile_ = True
+End Sub
+
+
+Public Sub savePDF()
+    Dim ws As Worksheet
+    Dim i As Long
+    
+    If WsNamesIndex_ = -1 Then
+        err.Raise 1001, , "対象のシートが指定されていません"
+    End If
+
+    ReDim Preserve WsNames_(WsNamesIndex_)
+    
+    'フォルダ確認
+    If Not FSO.FolderExists(TargetDirectory_) Then
+        If IsAlertForCreateFolder_ Then
+            If MsgBox("指定フォルダがありません。フォルダを作成しますか", vbYesNo + vbQuestion + vbDefaultButton2) = vbNo Then
+                Exit Sub
+            End If
+        End If
+        FSO.CreateFolder TargetDirectory_
+    End If
+    
+    
+    ' PDF形式で保存
+'    ファイルのフルパスを生成
+    AbsolutePdfName_ = FSO.BuildPath(TargetDirectory_, PdfName_)
+    
+    If FSO.FileExists(AbsolutePdfName_) Then
+        If IsAlertForOverwritePdfFile_ Then
+            If MsgBox("同名のPDFがあります。PDFを上書きしますか", vbYesNo + vbQuestion + vbDefaultButton2) = vbNo Then
+                Exit Sub
+            End If
+        End If
+        FSO.DeleteFile AbsolutePdfName_, True
+    End If
+    
+    
+    Wb_.Sheets(WsNames_).Select
+'    Wb_.Sheets(WsNames_).ExportAsFixedFormat Type:=xlTypePDF, FileName:=AbsolutePdfName_, Quality:=xlQualityStandard
+'    Wb_.Sheets(WsNames_(0)).ExportAsFixedFormat Type:=xlTypePDF, FileName:=AbsolutePdfName_, Quality:=xlQualityStandard
+    ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:=AbsolutePdfName_, Quality:=xlQualityStandard
+
+End Sub
+
+
+Public Sub deleteSheets()
+    Dim i As Long
+
+    If Not FSO.FileExists(AbsolutePdfName_) Then
+        MsgBox "PDF化していません。シート削除を中断します", vbOKOnly + vbCritical
+        Exit Sub
+    End If
+    
+    If IsAlertForDeleteSheet Then
+        If MsgBox("PDF化したシートを削除しますか", vbYesNo + vbQuestion + vbDefaultButton2) = vbNo Then
+            Exit Sub
+        End If
+    End If
+    Application.DisplayAlerts = False
+    For i = 0 To UBound(WsNames_)
+        Wb_.Sheets(WsNames_(i)).Delete
+    Next i
+    Application.DisplayAlerts = True
+
+End Sub
