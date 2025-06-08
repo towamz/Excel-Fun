@@ -1,0 +1,203 @@
+Private Sub UserForm_Initialize()
+    Dim today As Date
+    today = Now()
+    
+    TxtYrMo.Text = Format(DateSerial(Year(today), Month(today), 1), "yyyymm")
+    Call changeCaption(Me, TxtYrMo.Text)
+
+    LblPrevYrMo.Visible = False
+End Sub
+
+Private Sub TxtYrMo_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    Call changeCaption(Me, TxtYrMo.Text)
+End Sub
+
+Private Sub BtnPrevYr_Click()
+    TxtYrMo.Text = getOffsetYearMonthStr(TxtYrMo.Text, -1, 0)
+    Call changeCaption(Me, TxtYrMo.Text)
+End Sub
+
+Private Sub BtnPrevMo_Click()
+    TxtYrMo.Text = getOffsetYearMonthStr(TxtYrMo.Text, 0, -1)
+    Call changeCaption(Me, TxtYrMo.Text)
+End Sub
+
+Private Sub BtnNextYr_Click()
+    TxtYrMo.Text = getOffsetYearMonthStr(TxtYrMo.Text, 1, 0)
+    Call changeCaption(Me, TxtYrMo.Text)
+End Sub
+
+Private Sub BtnNextMo_Click()
+    TxtYrMo.Text = getOffsetYearMonthStr(TxtYrMo.Text, 0, 1)
+    Call changeCaption(Me, TxtYrMo.Text)
+End Sub
+
+
+Private Sub btn1_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn1.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn2_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn2.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn3_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn3.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn4_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn4.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn5_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn5.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn6_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn6.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn7_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn7.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn8_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn8.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn9_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn9.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn10_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn10.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn11_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn11.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn12_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn12.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn13_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn13.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn14_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn14.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn15_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn15.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn16_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn16.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn17_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn17.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn18_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn18.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn19_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn19.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn20_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn20.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn21_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn21.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn22_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn22.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn23_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn23.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn24_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn24.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn25_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn25.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn26_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn26.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn27_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn27.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn28_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn28.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn29_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn29.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn30_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn30.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn31_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn31.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn32_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn32.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn33_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn33.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn34_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn34.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn35_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn35.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn36_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn36.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn37_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn37.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn38_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn38.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn39_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn39.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn40_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn40.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn41_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn41.Caption, "00"))
+    Unload DatePicker
+End Sub
+Private Sub btn42_Click()
+    Call setDate(LblPrevYrMo.Caption & Format(btn42.Caption, "00"))
+    Unload DatePicker
+End Sub

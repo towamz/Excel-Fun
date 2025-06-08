@@ -1,0 +1,7 @@
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    If Not Application.Intersect(Target, Range("B:B")) Is Nothing Then
+        'ボタンを押されたときにその値を入力するためにCellを保持(グローバル変数)
+        Set TargetCell = Target
+        DatePicker.Show
+    End If
+End Sub

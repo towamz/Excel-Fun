@@ -1,0 +1,94 @@
+// 参照サイト
+// https://excel-ubara.com/GenerativeAI/GAI063.html
+
+// 日本の祝日カレンダーのiCal形式URL
+const ICAL_URL = 'https://calendar.google.com/calendar/ical/ja.japanese%23holiday%40group.v.calendar.google.com/public/basic.ics';
+
+/**
+ * Webリクエスト（GET）を処理し、日本の祝日データをXML形式で返します。
+ * @return {ContentService.TextOutput} XML形式の祝日データ。
+ */
+function doGet() {
+  try {
+    const icsString = UrlFetchApp.fetch(ICAL_URL).getContentText();
+    const events = parseICS(icsString);
+    const xmlOutput = convertToXML(events);
+    return ContentService.createTextOutput(xmlOutput).setMimeType(ContentService.MimeType.XML);
+  } catch (error) {
+    Logger.log('Error: ' + error.toString());
+    return ContentService.createTextOutput('<holidays><error><message>Failed to retrieve or parse holiday data: ' + escapeXml(error.toString()) + '</message></error></holidays>')
+                         .setMimeType(ContentService.MimeType.XML);
+  }
+}
+
+/**
+ * iCalendar形式の文字列を解析し、登録されているすべてのイベントを抽出します。
+ * @param {string} icsString - iCalendar形式のデータ文字列。
+ * @return {Array<Object>} 抽出されたイベントの配列（{date: 'YYYYMMDD', name: '祝日名'}）。
+ */
+function parseICS(icsString) {
+  const holidays = [];
+  const vevents = icsString.split('BEGIN:VEVENT');
+  
+  if (vevents.length > 1) {
+    vevents.slice(1).forEach(veventData => {
+      const eventLines = veventData.split(/\r\n|\r|\n/); // 改行コードの差異に対応
+      let date = '';
+      let summary = '';
+
+      eventLines.forEach(line => {
+        if (line.startsWith('DTSTART;VALUE=DATE:')) {
+          date = line.substring('DTSTART;VALUE=DATE:'.length).trim();
+        } else if (line.startsWith('SUMMARY:')) {
+          summary = line.substring('SUMMARY:'.length).trim();
+        }
+      });
+
+      if (date && summary) {
+        holidays.push({
+          date: date,
+          name: summary
+        });
+      }
+    });
+  }
+  return holidays;
+}
+
+/**
+ * 祝日データの配列をXML文字列に変換します。
+ * @param {Array<Object>} holidays - 祝日データの配列。
+ * @return {string} XML形式の文字列。
+ */
+function convertToXML(holidays) {
+  let xml = '<holidays>\n';
+    holidays.forEach(holiday => {
+      xml += '  <holiday>\n';
+      xml += '    <date>' + holiday.date + '</date>\n';
+      xml += '    <name>' + escapeXml(holiday.name) + '</name>\n';
+      xml += '  </holiday>\n';
+    });
+  xml += '</holidays>';
+  return xml;
+}
+
+/**
+ * XML特殊文字をエスケープします。
+ * @param {string} unsafe - エスケープ対象の文字列。
+ * @return {string} エスケープされた文字列。
+ */
+function escapeXml(unsafe) {
+  if (typeof unsafe !== 'string') {
+    return '';
+  }
+  return unsafe.replace(/[<>&'"]/g, function (c) {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+}
