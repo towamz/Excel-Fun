@@ -1,0 +1,8 @@
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    If Not Application.Intersect(Target, Range("B:B")) Is Nothing Then
+        If Target.Columns.Count = 1 Then
+            Set TargetCell = Target
+            DatePicker.Show
+        End If
+    End If
+End Sub
