@@ -14,8 +14,9 @@ try {
 # セル塗りつぶしの色を取得
 $targetColor = $workbook.Sheets.Item("設定").Range("D4").Interior.Color
 
-$standardRange = $workbook.Sheets.Item("スケジュール").Range("B3")
 $workbook.Sheets.Item("スケジュール").activate()
+
+$standardRange = $workbook.Sheets.Item("スケジュール").Range("B3")
 
 $offsetCol = 1
 $cellHeader = $standardRange.Offset(0, $offsetCol)
@@ -27,29 +28,30 @@ while (-not [System.String]::IsNullOrEmpty($cellHeader.Value2()) -or
     # 最初のデータ(ヘッダの次の行)セルを取得する
     $offsetRow=1
     $cell = $cellHeader.Offset($offsetRow, 0)
-    # 数値になるまで検索する
-    while (-not [int]::TryParse($cell.Value2(),[ref]$null)) {
-        # 次の行の日付セルが空白であればループを中止する
-        if([System.String]::IsNullOrEmpty($standardRange.Offset($offsetRow+1, 0).Value2())){
+
+    # 日付列が空白であればループを中止する
+    while (-not [System.String]::IsNullOrEmpty($standardRange.Offset($offsetRow, 0).Value2())) {
+        # 現在参照しているセルが数値であればセルに色を塗る
+        Write-Host ($offsetRow + 3)
+        if([int]::TryParse($cell.Value2(),[ref]$null)){
+            $cell.Interior.Color = $targetColor
+            $standardRange.Offset($offsetRow, 0).Interior.Color = $targetColor
+
+            $cellHeader.Address()
+            if ($cellHeader.MergeCells) {
+                $cellHeader.MergeArea.Cells.Item(1, 1).Interior.Color = $targetColor
+            } else {
+                $cellHeader.Interior.Color = $targetColor
+            }
+
+            # 次の列に移動するためにbreakする
+            Write-Host $cell.Address()
             break;
         }
         $offsetRow++
         $cell = $cellHeader.Offset($offsetRow, 0)
     }
 
-    # 現在参照しているセルが数値であればセルに色を塗る
-    # 最終行まできて数値でない場合は塗りつぶしをしないで次の列へ
-    if([int]::TryParse($cell.Value2(),[ref]$null)){
-        $cell.Interior.Color = $targetColor
-        $standardRange.Offset($offsetRow, 0).Interior.Color = $targetColor
-
-        $cellHeader.Address()
-        if ($cellHeader.MergeCells) {
-            $cellHeader.MergeArea.Cells.Item(1, 1).Interior.Color = $targetColor
-        } else {
-            $cellHeader.Interior.Color = $targetColor
-        }
-    }
     # 次のセル参照を代入
     # offset指定すると結合セルの場合は１つのセルとみなされるため
     # offset指定すると結合セルの最初の列のみとなってしまう
