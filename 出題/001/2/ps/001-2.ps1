@@ -87,7 +87,7 @@ function getColorsArray(){
 # }
 
 
-$FILE_PATH = "C:\sampleMacro\ps1\課題\001\2\【VBA】001_スケジュールへの着色.xlsm"
+$FILE_PATH = "C:\【VBA】001_スケジュールへの着色.xlsm"
 
 # Excel COMオブジェクト作成
 $excel = New-Object -ComObject Excel.Application
@@ -195,3 +195,9 @@ while (-not [System.String]::IsNullOrEmpty($cellDate.Value2())) {
     $numberRow++
     $cellDate = $worksheet.Cells($numberRow,$numberCol)
 }
+
+# 終了処理
+$workbook.Save()
+$workbook.Close()
+$excel.Quit()
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null

@@ -59,3 +59,9 @@ while (-not [System.String]::IsNullOrEmpty($cellHeader.Value2()) -or
     $offsetCol++
     $cellHeader = $standardRange.Offset(0, $offsetCol)
 }
+
+# 終了処理
+$workbook.Save()
+$workbook.Close()
+$excel.Quit()
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
